@@ -9,6 +9,7 @@
 #include "lvgl.h"
 #include "esp_lcd_ili9341.h"
 #include "esp_lcd_touch_xpt2046.h"
+#include "dht11_driver.h"
 
 // ========== PIN-CONFIG ==========
 #define LCD_HOST       SPI2_HOST
@@ -21,13 +22,37 @@
 #define PIN_TOUCH_CS   2
 #define PIN_TOUCH_IRQ  5
 
-
 // ========== GLOBALS ==========
 
 esp_lcd_touch_handle_t touch_handle = NULL;
 static lv_display_t * disp_global = NULL;
 static bool hardware_ready = false;
+lv_obj_t * inside_temp  = NULL;
+lv_obj_t * inside_humid = NULL;
 
+// ========== SENSOR READING ==========
+void sensor_read(void *pvParameters){
+    float temp = 0;
+    float hum = 0;
+    int status = 0;
+
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
+    while(1){
+        status = read_dht11(GPIO_NUM_8, &temp, &hum);
+        
+        if(status == 0){
+            if(inside_temp != NULL && inside_humid != NULL){
+                int t_int = (int)temp;
+                int h_int = (int)hum;
+                lv_label_set_text_fmt(inside_temp, "%d°C", t_int);
+                lv_label_set_text_fmt(inside_humid, "%d %%", h_int);
+                printf("Temp: %.1f C, Hum: %.0f%%\n", temp, hum);
+            } 
+        } else {printf("Sensor failed, error code: %d\n", status);}
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    } 
+}
 
 // ========== TOUCH CALLBACKS ==========
 
@@ -42,7 +67,7 @@ static void lvgl_touch_cb(lv_indev_t * indev, lv_indev_data_t * data) {
         //data->point.y = point.y; //use this instead if up/down touch is mirrored
         data->point.y = 240- point.y; 
         data->state = LV_INDEV_STATE_PRESSED;
-        //printf("X: %d, Y: %d\n", point.x, point.y); //remove comment to log coordinates in serial monitor
+        printf("X: %d, Y: %d\n", point.x, point.y); //remove comment to log coordinates in serial monitor
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
@@ -81,7 +106,6 @@ void ui_options_screen_init(void);
 //void ui_alarm_screen_init(void); // TO BE ADDED
 
 // ======== SHARED CALLBACKS =========
-
 static void change_to_options_cb(lv_event_t * e) {
     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
         // Create options and remove home_screen (true = auto_del)
@@ -145,14 +169,12 @@ void ui_home_screen_init(void) {
     lv_obj_set_style_text_color(inside_header, lv_color_white(), 0);
     lv_obj_align(inside_header, LV_ALIGN_TOP_MID, 0, 0);
 
-    lv_obj_t * inside_temp = lv_label_create(inside_box);
-    lv_label_set_text(inside_temp, "23°C");
+    inside_temp = lv_label_create(inside_box);
     lv_obj_set_style_text_font(inside_temp, LV_FONT_DEFAULT, 0);
     lv_obj_set_style_text_color(inside_temp, lv_color_white(), 0);
     lv_obj_align(inside_temp, LV_ALIGN_CENTER, 0, 0);
 
-    lv_obj_t * inside_humid = lv_label_create(inside_box);
-    lv_label_set_text(inside_humid, "46%");
+    inside_humid = lv_label_create(inside_box);
     lv_obj_set_style_text_font(inside_humid, LV_FONT_DEFAULT, 0);
     lv_obj_set_style_text_color(inside_humid, lv_color_white(), 0);
     lv_obj_align(inside_humid, LV_ALIGN_CENTER, 0, 20);
@@ -233,7 +255,7 @@ static void lvgl_port_task(void *arg) {
 }
 
 void app_main() {
-    // ===== Display Constants for Landscape =====
+    // ===== Display Constants =====
     const uint16_t LCD_H_RES = 320;
     const uint16_t LCD_V_RES = 240;
     const uint16_t BUF_LINES = 20; 
@@ -333,6 +355,8 @@ void app_main() {
     hardware_ready = true;
     
     xTaskCreate(lvgl_port_task, "LVGL", 1024 * 8, NULL, 5, NULL);
+
+    xTaskCreate(sensor_read, "DHT11_Task", 1024 * 4, NULL, 2, NULL);
     
     vTaskDelete(NULL);
 }
