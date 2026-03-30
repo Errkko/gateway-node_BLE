@@ -2,6 +2,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"    
 #include "nvs_flash.h"
 #include "esp_log.h"
 #include "nimble/nimble_port.h"
@@ -9,6 +10,7 @@
 #include "host/ble_hs.h"
 #include "services/gap/ble_svc_gap.h"
 #include "bleManager.h"
+#include "alarmManager.h"
 
 uint8_t ble_addr_type;
 static const char *TAG = "BLE_CLIENT";
@@ -105,13 +107,18 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg) {
 
         case BLE_GAP_EVENT_NOTIFY_RX:
             // data från Sensor-node
-            if (event->notify_rx.indication == 1) {
-                int val = 0;
-                ble_hs_mbuf_to_flat(event->notify_rx.om, &val, sizeof(val), NULL);
+            int rc = ble_hs_mbuf_to_flat(event->notify_rx.om, &alarmInfo, sizeof(AlarmInfo), NULL);
 
+            if (event->notify_rx.indication == 1) {
+                if (rc == 0){
+                    ESP_LOGI(TAG, "Indicate mottaget! -> Data: %d, Tid: %d", alarmInfo.trigger, alarmInfo.time);
+                }
                 // skickar larmet in i larmkön
-                xQueueSend(alarmQueue, &val, 0);
-                //ESP_LOGI(TAG, "FRÅN SENSOR NODE: %d", val); 
+                if (alarmQueue != NULL){
+                    xQueueSend(alarmQueue, &alarmInfo, 0);
+                } else {
+                    ESP_LOGI(TAG, "Misslyckades att packa upp AlarmInfo, rxBLE=%d", rc);
+                }
             }
             break;
 
