@@ -2,15 +2,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"             // För xQueueSend / xQueueReceive
-#include "driver/gpio.h"
-#include "lvgl.h"
-#include "dht11_driver.h"
 #include "disp_led_pwm.h"
 #include "bleManager.h"
 #include "alarmManager.h"
-#include "nvs_flash.h"                  // För nvs_flash_init
-#include "host/ble_hs.h"                // För ble_hs_cfg
-#include "services/gap/ble_svc_gap.h"   // För ble_svc_gap_init
 #include "disp_config.h"
 #include "disp_ui.h"
 
