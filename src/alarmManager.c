@@ -4,7 +4,9 @@
 #include "freertos/queue.h"
 #include "esp_log.h"
 #include "bleManager.h" 
+#include "alarmManager.h"
 
+AlarmInfo alarmInfo =  {NONE, 0};
 
 void vAlarmReceiveTask(void* params){
     // lokal "behållare" för värdet som tas emot från kön.
