@@ -60,50 +60,64 @@ void vAlarmReceiveTask(void* params){
 //}
 
 void manageAlarm(){
+    // bestäm hur vi ska aggera, beroende på larm.
 
     // sätter larm-status
     setAlarm();
 
     // agerar på larm-status
-    if (node.alarmStatus.ALARM_FIRE){
+    if (node.alarmStatus.ALARM_FIRE){       // hög prio
         buzzer_on_fire();
-        // info i display ?
+        // Visuellt: Tydligt i display
         // broker -> DB
         // thingsboard ?
+
+        // RESET:
+        // inaktiveras ~8s efter larm inkommer (larm kommer löpande var 5-6s tills temp är OK)
+        // via resetAlarm(); 
     }
 
-    if (node.alarmStatus.ALARM_INTRUSION){
+    if (node.alarmStatus.ALARM_INTRUSION){  // mellan prio
         buzzer_on_intrusion();
+        // Visuellt: Tydligt i display
+        // broker -> DB
+        // thingsboard ?
+
+        // RESET:
+        // inaktiveras när larm inaktiveras av användare - via resetAlarm();
+    }
+
+        if (node.alarmStatus.ALARM_WATER){  // låg prio
+        // Visuellt: Syns i display
         // info i display ?
         // broker -> DB
         // thingsboard ?
+
+        // RESET:
+        // inaktiveras ~1 min efter larm slutat skicka ?
     }
 }
 
 
 void setAlarm(){
-    // om vi fått ett larm ..
-    // bestäm hur vi ska aggera, beroende på larm.
+    // om vi fått larm, sätt status
     switch (alarmInfo.trigger)
     {
     case FIRE:
         node.alarmStatus.ALARM_FIRE = true;
         break;
-
     case DOOR:
         node.alarmStatus.ALARM_INTRUSION = true;
     break;
-
     case MOTION:
         node.alarmStatus.ALARM_INTRUSION = true;
     break;
-    
     case WATER:
         node.alarmStatus.ALARM_WATER = true;
         // Infomation on LCD / Thingsboard + bip.
     break;
-
     default:
+        // failstate?
         break;
     }
 
