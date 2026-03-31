@@ -13,7 +13,7 @@ QueueHandle_t alarmQueue;
 SemaphoreHandle_t xGuiSemaphore = NULL;
 
 void app_main() {
-
+    
     // skapa larm kö
     alarmQueue = xQueueCreate(10, sizeof(AlarmInfo));
     xGuiSemaphore = xSemaphoreCreateMutex();

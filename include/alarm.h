@@ -1,10 +1,14 @@
 #ifndef ALARMMANAGER_H
 #define ALARMMANAGER_H
 #include <stdint.h> 
+// hämtar aktuella millisekunder sedan start
+#define GET_SYS_TIME_MS() (pdTICKS_TO_MS(xTaskGetTickCount()))
+#define systemTime (pdTICKS_TO_MS(xTaskGetTickCount()))
 
 void vAlarmReceiveTask(void* params);
 void manageAlarm();
 void setAlarm();
+void checkIfReset();
 
 // ======= SYSTEM STATUS =======
 typedef enum

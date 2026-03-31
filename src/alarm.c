@@ -6,6 +6,11 @@
 #include "ble_manager.h" 
 #include "alarm.h"
 #include "gpio.h"
+#define FIRE_ALARM_RESET_TIME 8000
+#define WATER_ALARM_RESET_TIME 35000
+
+int triggerFireAlarmTime;
+int triggerWaterAlarmTime;
 
 AlarmInfo alarmInfo =  {NONE, 0};
 
@@ -43,10 +48,14 @@ void vAlarmReceiveTask(void* params){
         // vänta här - tills något finns i kön.. -> (kopigera då in värdet i 'val')
         if (xQueueReceive(alarmQueue, &alarmInfo, portMAX_DELAY)){
             ESP_LOGI("SensorNode", "Data: %d", alarmInfo.trigger);
-            ESP_LOGI("SensorNode", "Tid: %d", alarmInfo.time);
+            ESP_LOGI("SensorNode", "Time: %d", alarmInfo.time);
 
             if (alarmInfo.trigger != NONE) {
                 manageAlarm(); 
+            } else {
+                if (node.alarmStatus.ALARM_FIRE || node.alarmStatus.ALARM_WATER){ // node.alarmStatus.ALARM_INTRUSION kommer inaktiveras aktivt.
+                    checkIfReset();
+                }
             }
         }
         //vTaskDelay ..
@@ -67,6 +76,7 @@ void manageAlarm(){
 
     // agerar på larm-status
     if (node.alarmStatus.ALARM_FIRE){       // hög prio
+        triggerFireAlarmTime = systemTime;
         buzzer_on_fire();
         // Visuellt: Tydligt i display
         // Ljud: högt-tätt pip ?
@@ -93,7 +103,8 @@ void manageAlarm(){
         // inaktiveras när larm inaktiveras av användare - via resetAlarm();
     }
 
-        if (node.alarmStatus.ALARM_WATER){  // låg prio
+    if (node.alarmStatus.ALARM_WATER){  // låg prio
+        triggerFireAlarmTime = systemTime;
         // Visuellt: Info i display
         // Ljud: Lätt pip
 
@@ -131,14 +142,22 @@ void setAlarm(){
 
 }
 
-//void fireAlarm(){
-    // start fire alarm 
-    // remain ~8s (Rx each ~6s cycles)
-    //buzzer + LCD/Thingsboard??
+void checkIfReset(){
+    // reset för brand & vatten (tidsbaserat)
 
-    
-    //buzzer_on();
-    
-    // else
-    //buzzer_off();
-//}
+
+    // om det gått mer än 8s sen brandlarm mottogs -> Reset
+    if (systemTime - triggerFireAlarmTime >= FIRE_ALARM_RESET_TIME){
+        
+        // RESET
+        node.alarmStatus.ALARM_FIRE = false;
+        buzzer_off(); // <------- bara för test (OBS! får bara stängas av om nån annan inte använder summern..)
+    }
+
+    // om det gått mer än 35s? sen vatten-läckage mottogs -> Reset
+    if (systemTime - triggerWaterAlarmTime >= WATER_ALARM_RESET_TIME){
+        
+        // RESET
+        node.alarmStatus.ALARM_WATER = false;
+    }
+}
