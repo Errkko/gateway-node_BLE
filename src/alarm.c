@@ -50,13 +50,16 @@ void vReceiveAlarmTask(void* params){
     for (;;){
         // vänta här - tills något finns i kön.. -> (kopigera då in värdet i 'val')
         if (xQueueReceive(alarmQueue, &alarmInfo, portMAX_DELAY)){
-            ESP_LOGI("SensorNode", "Data: %d", alarmInfo.trigger);
-            ESP_LOGI("SensorNode", "Time: %d", alarmInfo.time);
-
+            
             // Om skarpt larm -> lämna över till AlarmManagerTask + Yield
             if (alarmInfo.trigger != NONE){
+
+                ESP_LOGI("SensorNode", "Data: %d", alarmInfo.trigger);
+                ESP_LOGI("SensorNode", "Time: %d", alarmInfo.time);
+
                 xSemaphoreGive(xAlarmSemaphore);
                 taskYIELD();
+
             } else {
                 ESP_LOGI("SensorNode", "Heartbeat..");
                 lastHeartbeatTime = systemTime;
