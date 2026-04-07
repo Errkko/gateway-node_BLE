@@ -180,7 +180,7 @@ void ble_app_on_sync(void) {
 }
 
 // skickar alarm-state till sensor node: | Disarmed=0 | Armed home=1 | Armed away=2 |
-void set_alarmState(AlarmState state){
+void setAlarmState(AlarmState state){
     
     // sätter state
     node.systemState = state;

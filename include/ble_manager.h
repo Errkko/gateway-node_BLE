@@ -2,6 +2,7 @@
 #define BLEMANAGER_H
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "alarm.h"
 
 extern QueueHandle_t alarmQueue;
 //static int ble_gap_event(struct ble_gap_event *event, void *arg);
@@ -10,7 +11,7 @@ void vBLETask(void *param);
 void ble_app_scan(void);
 void ble_app_on_sync(void);
 void initBLE();
-void set_alarmState(AlarmState state);
+void setAlarmState(AlarmState state);
 
 
 #endif

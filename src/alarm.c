@@ -51,7 +51,7 @@ void vReceiveAlarmTask(void* params){
     buzzer_init();
     
     for (;;){
-        // vänta här - tills något finns i kön.. -> (kopigera då in värdet i 'val')
+        // vänta här - tills något finns i kön.. -> (kopigera då in värdet i 'alarmInfo')
         if (xQueueReceive(alarmQueue, &alarmInfo, portMAX_DELAY)){
             
             // Om skarpt larm -> lämna över till AlarmManagerTask + Yield
@@ -124,7 +124,7 @@ void manageAlarm(){
     }
 
     if (node.alarmStatus.ALARM_INTRUSION && !node.alarmStatus.ALARM_FIRE){  // mellan prio
-        buzzer_on_intrusion();
+        buzzer_on_fire();
         // Visuellt: Tydligt i display
         // Ljud: hög siren ?
 

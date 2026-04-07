@@ -58,7 +58,7 @@ typedef enum
     STATE_DISARMED = 0,
     STATE_ARMED_HOME = 1,
     STATE_ARMED_AWAY = 2
-}AlarmState; //alarm_state_t; (ändra!)
+}AlarmState; 
 
 typedef struct
 {
