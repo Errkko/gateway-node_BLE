@@ -24,7 +24,7 @@
     * Buzzer
 * Comminucation
   * BLE
-    * Sending: Alarm-state (Tx)
-    * Receiving: Heartbeat & alarm info (Rx)
+    * Sending: Heartbeat/Alarm-state (Tx)
+    * Receiving: Alarm info (Rx)
 
 ---

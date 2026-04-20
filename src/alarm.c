@@ -44,9 +44,19 @@ System node = {
     .buzzer = false
 };
 
-// void vSendAlarmStateTask
+// Skicka "State-Heartbeat"
+void vTransmitDataTask(void* params){
+    uint8_t stateInfo = node.systemState;
 
-void vReceiveAlarmTask(void* params){
+    for (;;){
+        xQueueReceive(stateQueue, &stateInfo, pdMS_TO_TICKS(5000));
+        
+        //skicka state över BLE (som "heartbeat")
+        sendAlarmState();
+    }
+}
+
+void vReceiveDataTask(void* params){
     // lokal "behållare" för värdet som tas emot från kön.
     buzzer_init();
     
@@ -68,7 +78,7 @@ void vReceiveAlarmTask(void* params){
                 lastHeartbeatTime = systemTime;
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(100)); // behövs?
+        //vTaskDelay(pdMS_TO_TICKS(100)); // ta bort?
     }
 }
 
@@ -84,13 +94,14 @@ void vAlarmManagerTask(void* params){
         } else {
             // BARA vid timeout
             checkIfReset();
-            if (lastHeartbeatTime >= 0){
-                checkHeartbeat();
-            }
+
+            //if (lastHeartbeatTime >= 0){ ---> ändras till SEND heartbeat, i ny task.
+            //    checkHeartbeat();
+            //}
             
             
         }
-        vTaskDelay(pdMS_TO_TICKS(20)); // behövs?
+        //vTaskDelay(pdMS_TO_TICKS(20)); // ta bort?
     }
 }
 
@@ -221,4 +232,13 @@ void checkHeartbeat(){
             // info/notis i display -> 'FAIL SAFE'
         }
     }
+}
+
+void setAlarmState(AlarmState state){
+    
+    // uppdatera aktuellt state
+    node.systemState = state;
+
+    // addera state i kö
+    xQueueOverwrite(stateQueue, &state);
 }

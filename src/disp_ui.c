@@ -75,8 +75,16 @@ static void update_alarm_ui(void) {
 
 static void alarm_toggle_cb(lv_event_t * e) {
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
-    setAlarmState(STATE_ARMED_AWAY);                    // <<------------ !! JUST FOR TEST !! <<------------
+
+    // <<------------ !! JUST FOR TEST !! <<------------
+    if (node.systemState == 0){
+        setAlarmState(STATE_ARMED_AWAY); 
+    } else {
+        setAlarmState(STATE_DISARMED); 
+    }         
     printf("Alarm state changed to: %d\n", node.systemState);
+    // <<------------ !! JUST FOR TEST !! <<------------
+
     //node.alarmState = (alarm_state + 1) % 2; //  change  to "% 3" when correct sensors are added <------ Behöver uppdateras!
     update_alarm_ui();
 }

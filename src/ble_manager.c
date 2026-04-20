@@ -65,14 +65,14 @@ void vBLETask(void *param) {
 // Callback när Characteristic hittas..
 static int on_char_disc(uint16_t conn_handle, const struct ble_gatt_error *error, const struct ble_gatt_chr *chr, void *arg) {
     if (error->status == 0) {
-        // 1. Kolla om detta är LARM-dörren (slutar på 01)
+        // 1. Kolla om detta är LARM-dörren (slutar på 01) "Rx"
         if (ble_uuid_cmp(&chr->uuid.u, &remote_char_uuid.u) == 0) {
             ESP_LOGI(TAG, "Hittade LARM-dörr. Aktiverar INDICATE...");
             uint8_t value[] = {0x02, 0x00};
             ble_gattc_write_flat(conn_handle, chr->val_handle + 1, value, sizeof(value), NULL, NULL);
         }
         
-        // 2. Kolla om detta är STATUS-dörren (slutar på 02)
+        // 2. Kolla om detta är STATUS-dörren (slutar på 02) "Tx"
         else if (ble_uuid_cmp(&chr->uuid.u, &remote_write_char_uuid.u) == 0) {
             ESP_LOGI(TAG, "Hittade STATUS-dörr (Handle: %d). Sparar för sändning.", chr->val_handle);
             node.connectionStatus.bleRemoteWriteHandle = chr->val_handle;
@@ -114,7 +114,7 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg) {
             if (event->connect.status == 0) {
 
                 node.connectionStatus.bleConnHandle = event->connect.conn_handle;
-                node.connectionStatus.bleIsActive = true; // <<-------------  Rätt plats att sätta denna??
+                node.connectionStatus.bleIsActive = true; 
 
                 ESP_LOGI(TAG, "ANSLUTEN! Startar discovery...\n"); 
                 ble_gattc_disc_svc_by_uuid(event->connect.conn_handle, &remote_service_uuid.u, on_service_disc, NULL);
@@ -179,26 +179,23 @@ void ble_app_on_sync(void) {
     ble_app_scan();
 }
 
-// skickar alarm-state till sensor node: | Disarmed=0 | Armed home=1 | Armed away=2 |
-void setAlarmState(AlarmState state){
+// skickar alarm-state till sensor node: | Disarmed=0 | Armed home=1 | Armed away=2 | (Arduino larmar efter 3 missade heartbeat)
+void sendAlarmState(){
     
-    // sätter state
-    node.systemState = state;
-
     // skickar state
     if (node.connectionStatus.bleConnHandle != -1 && node.connectionStatus.bleRemoteWriteHandle != -1){
-        uint8_t val = (uint8_t)state; // säkerställer till 1 byte
+        //uint8_t val = (uint8_t)node.systemState; // säkerställer till 1 byte
         int rc = ble_gattc_write_flat(
             node.connectionStatus.bleConnHandle,
             node.connectionStatus.bleRemoteWriteHandle,
-            &val, sizeof(uint8_t), NULL, NULL);
+            &node.systemState, sizeof(uint8_t), NULL, NULL);
     
         if (!rc){
-            ESP_LOGI(TAG, "Alarm-state skickat - State: %d", val);
+            ESP_LOGI(TAG, "Heartbeat-state skickat - State: %d", node.systemState);
         } else {
-            ESP_LOGE(TAG, "Kunde inte skicka alarm-state! Felkod: %d", rc);
+            ESP_LOGE(TAG, "Kunde inte skicka Heartbeat-state! Felkod: %d", rc);
         }
     } else {
-        ESP_LOGW(TAG, "BLE inte syncad! Kunde inte skicka alarm-state");
+        ESP_LOGW(TAG, "BLE inte syncad! Kunde inte skicka Heartbeat-state");
         }
 }

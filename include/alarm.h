@@ -5,16 +5,6 @@
 #define GET_SYS_TIME_MS() (pdTICKS_TO_MS(xTaskGetTickCount()))
 #define systemTime (pdTICKS_TO_MS(xTaskGetTickCount()))
 
-void vReceiveAlarmTask(void* params);
-void vAlarmManageerTask(void* params);
-void vAlarmManagerTask(void* params);
-void manageAlarm();
-void setAlarm();
-void checkIfReset();
-void checkHeartbeat();
-extern SemaphoreHandle_t xAlarmSemaphore;
-extern QueueHandle_t alarmQueue;
-
 // ======= SYSTEM STATUS =======
 typedef enum
 {
@@ -53,7 +43,7 @@ typedef struct __attribute__((packed))
 extern AlarmInfo alarmInfo;
 
 // ======= ALARM STATE =======
-typedef enum
+typedef enum : uint8_t
 {
     STATE_DISARMED = 0,
     STATE_ARMED_HOME = 1,
@@ -103,6 +93,18 @@ typedef struct
 extern System node;
 
 
+void vReceiveDataTask(void* params);
+void vTransmitDataTask(void* params);
+void vAlarmManageerTask(void* params);
+void vAlarmManagerTask(void* params);
+void manageAlarm();
+void setAlarm();
+void checkIfReset();
+void checkHeartbeat();
+void setAlarmState(AlarmState state);
+extern SemaphoreHandle_t xAlarmSemaphore;
+extern QueueHandle_t alarmQueue;
+extern QueueHandle_t stateQueue;
 
 
 #endif
