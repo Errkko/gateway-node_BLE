@@ -14,7 +14,7 @@ int lastHeartbeatTime = -1;
 int triggerFireAlarmTime;
 int triggerWaterAlarmTime;
 
-AlarmInfo alarmInfo =  {NONE, 0};
+AlarmInfo alarmInfo =  {STATE_DISARMED, NONE, -1, -1, {-1,-1,-1,-1},};
 
 System node = {
     .runStatus = WAKING_UP,
@@ -74,8 +74,9 @@ void vReceiveDataTask(void* params){
                 taskYIELD();
 
             } else {
-                ESP_LOGI("SensorNode", "Heartbeat..");
-                lastHeartbeatTime = systemTime;
+                node.sensorData.indoorTemp = (float)(alarmInfo.climate.inTemp/100.0f);
+                node.sensorData.indoorHumidity = (float)(alarmInfo.climate.inHum/100.0f);
+                ESP_LOGI("SensorNode", "Indoor Temp: %.1f", node.sensorData.indoorTemp);
             }
         }
         //vTaskDelay(pdMS_TO_TICKS(100)); // ta bort?

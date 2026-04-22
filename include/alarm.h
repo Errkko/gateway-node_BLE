@@ -32,15 +32,15 @@ typedef enum : uint8_t
 }AlarmTrigger;
 
 
-// ======= ALARM INFO (Rx) =======
-// packad strukt, ta emot larm. [Från Arduino eller Zero]
-typedef struct __attribute__((packed))
-{
-    AlarmTrigger trigger;
-    uint32_t time;
-}AlarmInfo;
 
-extern AlarmInfo alarmInfo;
+typedef struct {
+    int16_t inTemp;
+    uint16_t inHum;
+    int16_t apiTemp; // outdoor temp, from API
+    uint16_t apiHum; // outdoor humidity, from API
+} Climate;
+
+
 
 // ======= ALARM STATE =======
 typedef enum : uint8_t
@@ -49,6 +49,21 @@ typedef enum : uint8_t
     STATE_ARMED_HOME = 1,
     STATE_ARMED_AWAY = 2
 }AlarmState; 
+
+
+// ======= ALARM INFO (Rx) =======
+// packad strukt, ta emot larm. [Från Arduino]
+typedef struct __attribute__((packed)) // 15-byte packat
+{
+    AlarmState alarmMode;    // State:   0=Disarmed, 1=ArmedHome, 2=ArmedAway                           [1 byte]
+    AlarmTrigger trigger;   // Trigger: 0=None, 1=Water, 2=Door, 3=Motion, 4=Fire, 5=NodeMissing (ESP)  [1 byte]
+    uint32_t time;          // Unixtime: Update for state AND trigger                                   [4 byte]
+    uint8_t remoteActivete; // Remote activate alarm - from Thingsboard                                 [1 byte]
+    Climate climate;        // Indoor & Outdoor (API): temp / humidity                                  [8 byte]
+}AlarmInfo;
+
+extern AlarmInfo alarmInfo;
+
 
 typedef struct
 {
