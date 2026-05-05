@@ -15,6 +15,30 @@ SemaphoreHandle_t xGuiSemaphore;
 QueueHandle_t alarmQueue;
 QueueHandle_t stateQueue;
 
+void runtime_stats(){
+    
+    vTaskDelay(pdMS_TO_TICKS(10000)); 
+
+    static char buffer[1024];
+
+    while (1) {
+        printf("\n==========================================\n");
+        printf("--- SYSTEM RUNTIME STATS ---\n");
+        
+        // Hämta stats, glöm inte att fixa inställningar menuconfig
+        vTaskGetRunTimeStats(buffer);
+        printf("%s", buffer);
+        
+        printf("------------------------------------------\n");
+        printf("Free Heap: %d bytes\n", esp_get_free_heap_size());
+        printf("Min Free Heap: %d bytes\n", esp_get_minimum_free_heap_size());
+        printf("==========================================\n");
+
+        // Körs bara var 10:e sekund för att inte skräpa ner i loggen
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    }
+}
+
 void app_main() {
 
     // skapa larm kö
@@ -37,6 +61,7 @@ void app_main() {
 
     xTaskCreate(lvgl_port_task, "LVGL", 1024 * 16, NULL, 2, NULL);
     //xTaskCreate(sensor_read, "DHT11_Task", 1024 * 4, NULL, 2, NULL);
+    xTaskCreatePinnedToCore(runtime_stats, "MonitorTask", 4096, NULL, 1, NULL, 1);
     
     vTaskDelete(NULL);
 }
