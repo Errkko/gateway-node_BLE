@@ -1,5 +1,6 @@
 #ifndef ALARMMANAGER_H
 #define ALARMMANAGER_H
+#define ENTRY_TIMER_COUNTDOWN 30000
 #include <stdint.h> 
 // hämtar aktuella millisekunder sedan start
 #define GET_SYS_TIME_MS() (pdTICKS_TO_MS(xTaskGetTickCount()))
@@ -112,14 +113,18 @@ void vReceiveDataTask(void* params);
 void vTransmitDataTask(void* params);
 void vAlarmManageerTask(void* params);
 void vAlarmManagerTask(void* params);
+void vEntryDelayCallback(TimerHandle_t xTimer);
 void manageAlarm();
 void setAlarm();
 void checkIfReset();
 void checkHeartbeat();
 void setAlarmState(AlarmState state);
+void resetAlarm();
 extern SemaphoreHandle_t xAlarmSemaphore;
 extern QueueHandle_t alarmQueue;
 extern QueueHandle_t stateQueue;
+extern QueueHandle_t doorQueue;
+extern TimerHandle_t xEntryDelayTimer;
 
 
 #endif

@@ -13,8 +13,9 @@
 int lastHeartbeatTime = -1;
 int triggerFireAlarmTime;
 int triggerWaterAlarmTime;
+uint8_t doorTrigger = false;
 
-AlarmInfo alarmInfo =  {STATE_DISARMED, NONE, -1, -1, {-1,-1,-1,-1},};
+AlarmInfo alarmInfo =  {STATE_DISARMED, NONE, 0, -1, {-127,-127,-127,-127},};
 
 System node = {
     .runStatus = WAKING_UP,
@@ -49,8 +50,26 @@ void vTransmitDataTask(void* params){
     uint8_t stateInfo = node.systemState;
 
     for (;;){
-        xQueueReceive(stateQueue, &stateInfo, pdMS_TO_TICKS(5000));
+        BaseType_t xResult = xQueueReceive(stateQueue, &stateInfo, pdMS_TO_TICKS(5000));
         
+        if (xResult){
+            // vid EVENT (nytt state)
+
+            switch (stateInfo)
+            {
+            case STATE_DISARMED:
+                resetAlarm();  // <---- Här ska vi nolla/tysta alla larm - "utgångsläge" <------------------------------------------
+                break;
+            case STATE_ARMED_AWAY:
+                /* code */
+                break;
+            case STATE_ARMED_HOME:
+                /* code */
+                break;
+            }
+
+        }
+
         //skicka state över BLE (som "heartbeat")
         sendAlarmState();
     }
@@ -59,21 +78,35 @@ void vTransmitDataTask(void* params){
 void vReceiveDataTask(void* params){
     // lokal "behållare" för värdet som tas emot från kön.
     buzzer_init();
+    uint8_t uiCommand = 1;
     
     for (;;){
-        // vänta här - tills något finns i kön.. -> (kopigera då in värdet i 'alarmInfo')
+        // vänta här - tills något finns i kön..
         if (xQueueReceive(alarmQueue, &alarmInfo, portMAX_DELAY)){
             
             // Om skarpt larm -> lämna över till AlarmManagerTask + Yield
             if (alarmInfo.trigger != NONE){
 
-                ESP_LOGI("SensorNode", "Data: %d", alarmInfo.trigger);
-                ESP_LOGI("SensorNode", "Time: %d", alarmInfo.time);
+                if (alarmInfo.trigger == DOOR && doorTrigger == false){
+                    if (xTimerIsTimerActive(xEntryDelayTimer) == pdFALSE) {
+                        xTimerStart(xEntryDelayTimer, 0);
+                        ESP_LOGI("LARM", "Open door! Countdown started...");
 
-                xSemaphoreGive(xAlarmSemaphore);
-                taskYIELD();
+                        xQueueOverwrite(doorQueue, &uiCommand); // kö-event för att trigga countdown-screen.
+                    }   
+                }
+
+                if (alarmInfo.trigger != DOOR || doorTrigger == true){
+                    ESP_LOGI("SensorNode", "Data: %d", alarmInfo.trigger);
+                    ESP_LOGI("SensorNode", "Time: %d", alarmInfo.time);
+
+                    xSemaphoreGive(xAlarmSemaphore);
+                    taskYIELD();
+                }
 
             } else {
+                // TRIGGER "NONE" ( = DHT11 eller remote activate):
+
                 // hanterar DHT11 samt RemoteActivete.
                 node.sensorData.indoorTemp = (float)(alarmInfo.climate.inTemp/100.0f);
                 node.sensorData.indoorHumidity = (float)(alarmInfo.climate.inHum/100.0f);
@@ -85,10 +118,8 @@ void vReceiveDataTask(void* params){
                 }
             }
         }
-        //vTaskDelay(pdMS_TO_TICKS(100)); // ta bort?
     }
 }
-
 
 void vAlarmManagerTask(void* params){
 
@@ -230,6 +261,7 @@ void checkHeartbeat(){
     }
 }
 
+// Setter - för 'alarm state'
 void setAlarmState(AlarmState state){
     
     // uppdatera aktuellt state
@@ -237,4 +269,19 @@ void setAlarmState(AlarmState state){
 
     // addera state i kö
     xQueueOverwrite(stateQueue, &state);
+}
+
+void resetAlarm(){
+    // OBS GLÖM EJ - VID DISARMED STATE - NOLLA TIMERS + doorTriggerCnt !! <-----------------------------
+    
+    xTimerStop(xEntryDelayTimer, 0);            // Nolla EntryTimer
+    doorTrigger = false;
+    node.alarmStatus.ALARM_INTRUSION = false;   // Nolla 'Alarm Intrusion'
+    ESP_LOGI("RESET ALARM", "DONE");
+}
+
+void vEntryDelayCallback(TimerHandle_t xTimer){
+    doorTrigger = true;
+    alarmInfo.trigger = DOOR;
+    xQueueSend(alarmQueue, &alarmInfo, 0);
 }

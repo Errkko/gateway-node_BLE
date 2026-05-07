@@ -14,15 +14,18 @@ SemaphoreHandle_t xAlarmSemaphore;
 SemaphoreHandle_t xGuiSemaphore; 
 QueueHandle_t alarmQueue;
 QueueHandle_t stateQueue;
+QueueHandle_t doorQueue;
+TimerHandle_t xEntryDelayTimer;
 
 void app_main() {
 
     // skapa larm kö
     alarmQueue = xQueueCreate(10, sizeof(AlarmInfo));
-    stateQueue = xQueueCreate(1, sizeof(uint8_t)); // ----------> not finish yet
+    stateQueue = xQueueCreate(1, sizeof(uint8_t)); 
+    doorQueue = xQueueCreate(1, sizeof(uint8_t)); 
     xAlarmSemaphore = xSemaphoreCreateBinary();
     xGuiSemaphore = xSemaphoreCreateMutex();
-    //sensor_queue = xQueueCreate(5, sizeof(sensor_data_t)); // Om du har en sensor-kö
+    xEntryDelayTimer = xTimerCreate("EntryTimer", pdMS_TO_TICKS(ENTRY_TIMER_COUNTDOWN), pdFALSE, (void*)0, vEntryDelayCallback);
 
     disp_HW_init();
     disp_UI_init();
