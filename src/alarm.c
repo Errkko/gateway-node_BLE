@@ -6,7 +6,7 @@
 #include "ble_manager.h" 
 #include "alarm.h"
 #include "gpio.h"
-#define FIRE_ALARM_RESET_TIME 8000
+#define FIRE_ALARM_RESET_TIME 10000
 #define WATER_ALARM_RESET_TIME 35000
 #define HEARTBEAT_BLE_INTERVALL 5000
 
@@ -74,10 +74,15 @@ void vReceiveDataTask(void* params){
                 taskYIELD();
 
             } else {
+                // hanterar DHT11 samt RemoteActivete.
                 node.sensorData.indoorTemp = (float)(alarmInfo.climate.inTemp/100.0f);
                 node.sensorData.indoorHumidity = (float)(alarmInfo.climate.inHum/100.0f);
                 ESP_LOGI("SensorNode", "Indoor Temp: %.1f", node.sensorData.indoorTemp);
                 ESP_LOGI("SensorNode", "Indoor Humidity: %.1f%%", node.sensorData.indoorHumidity);
+
+                if (alarmInfo.remoteActivete == 1){
+                    setAlarmState(STATE_ARMED_AWAY);
+                }
             }
         }
         //vTaskDelay(pdMS_TO_TICKS(100)); // ta bort?
@@ -96,21 +101,10 @@ void vAlarmManagerTask(void* params){
         } else {
             // BARA vid timeout
             checkIfReset();
-
-            //if (lastHeartbeatTime >= 0){ ---> ändras till SEND heartbeat, i ny task.
-            //    checkHeartbeat();
-            //}
-            
             
         }
-        //vTaskDelay(pdMS_TO_TICKS(20)); // ta bort?
     }
 }
-
-//void alarmSendState(){
-    // skickar till arudino: 0,1,2 (STATE_DISARMED, STATE_ARMED_AWAY, STATE_ARMED_HOME)
-
-//}
 
 
 void manageAlarm(){
